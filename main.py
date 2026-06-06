@@ -14,15 +14,17 @@ clock = pygame.time.Clock()
 running = True  # Pygame main loop, kills pygame when False
 
 # Game state variables
+small_font = pygame.font.Font(pygame.font.get_default_font(), 28)
 is_playing = True  # Whether in game or in menu
 GROUND_Y = 300  # The Y-coordinate of the ground level
 JUMP_GRAVITY_START_SPEED = -15  # The speed at which the player jumps
 players_gravity_speed = 0  # The current speed at which the player falls
-
 can_double_jump = False
 start_time = 0
 score = 0
 is_paused = False
+time_paused = 0
+total_time_paused = 0
 
 # Load level assets
 HEART_SURF = pygame.image.load("graphics/level/heart.png").convert_alpha()
@@ -95,6 +97,10 @@ while running:
             elif is_playing:
                 if event.type == pygame.KEYDOWN and event.key == pygame.K_ESCAPE:
                     is_paused = not is_paused
+                    if is_paused:
+                        time_paused = pygame.time.get_ticks()
+                    else:
+                        total_time_paused += pygame.time.get_ticks() - time_paused
                 if event.type == pygame.KEYDOWN and event.key == pygame.K_q and is_paused:
                     running = False
         else:
@@ -107,6 +113,8 @@ while running:
                 start_time = pygame.time.get_ticks()
                 spring_active = False
                 spring_timer = 0
+                time_paused = 0
+                total_time_paused = 0
 
     if is_playing:
         if not is_paused:
@@ -114,15 +122,14 @@ while running:
                 spring_timer -= 1
                 if spring_timer <= 0:
                     spring_active = False
-
+            time_paused = 0
             screen.fill("purple")  
             # Wipe the screen# Blit the level assets
             screen.blit(SKY_SURF, (0, 0))
             screen.blit(GROUND_SURF, (0, GROUND_Y))
 
-            current_time = pygame.time.get_ticks() - start_time
-            score = int(current_time / 100)  # Divide by 100 to make the score tick up at a readable pace
-        
+            current_time = pygame.time.get_ticks() - start_time - total_time_paused
+            score = int(current_time / 100)
             score_surf = game_font.render(f"Score: {score}", False, "Black")
             score_rect = score_surf.get_rect(center=(400, 50))
         
@@ -170,9 +177,6 @@ while running:
                 spring_hitbox.center = spring_rect.center
                 screen.blit(spring_powerup_surf, spring_rect)
                 spring_hitbox.center = spring_rect.center
-                spring_timer_text = game_font.render(f"Jump Boost: {spring_timer}", False, "White")
-                spring_timer_text_rect = spring_timer_text.get_rect(center=(650, 350))
-                screen.blit(spring_timer_text, spring_timer_text_rect)
                 if spring_rect.right <= 0:
                     active_powerup = None
                 if spring_hitbox.colliderect(player_hitbox):
@@ -190,6 +194,11 @@ while running:
                 if heart_hitbox.colliderect(player_hitbox):
                     lives = min(lives + 1, 7)
                     active_powerup = None
+            if spring_active:
+                spring_timer_text = small_font.render(f"Jump Boost: {(spring_timer / 60):.2f} s", False, "White")
+                spring_timer_text_rect = spring_timer_text.get_rect(center=(650, 350))
+                screen.blit(spring_timer_text, spring_timer_text_rect)
+
 
             pygame.draw.rect(screen, "red", heart_hitbox, 2)
             pygame.draw.rect(screen, "red", spring_hitbox, 2)
@@ -232,7 +241,6 @@ while running:
         # Draw lives as hearts
             for i in range(lives):
                 screen.blit(HEART_SURF, (10 + i * 50, 10))
-
         if is_paused:
             pause_overlay = pygame.Surface((800, 400), pygame.SRCALPHA)
             pause_overlay.fill((0, 0, 0, 150))  # semi-transparent dark overlay
