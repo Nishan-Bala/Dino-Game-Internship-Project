@@ -36,7 +36,14 @@ total_time_paused = 0
 # Load level assets
 HEART_SURF = pygame.image.load("graphics/level/heart.png").convert_alpha()
 SKY_SURF = pygame.image.load("graphics/level/sky.png").convert()
-GROUND_SURF = pygame.image.load("graphics/level/ground.png").convert()
+GROUND_SURF_1 = pygame.image.load("graphics/level/ground.png").convert()
+GROUND_SURF_2 = pygame.image.load("graphics/level/ground.png").convert()
+ground_rect_1 = GROUND_SURF_1.get_rect(topleft = (800, GROUND_Y))
+ground_rect_2 = GROUND_SURF_2.get_rect(topleft = (0, GROUND_Y))
+cloud_1 = pygame.image.load("graphics/level/cloud_1.png").convert_alpha()
+cloud_2 = pygame.image.load("graphics/level/cloud_2.png").convert_alpha()
+cloud_1_rect = cloud_1.get_rect(topleft=(100, 50))
+cloud_2_rect = cloud_2.get_rect(topleft=(500, 80))
 game_font = pygame.font.Font(pygame.font.get_default_font(), 50)
 score_surf = game_font.render("SCORE?", False, "Black")
 score_rect = score_surf.get_rect(center=(400, 50))
@@ -151,15 +158,27 @@ while running:
             screen.fill("purple")  
             # Wipe the screen# Blit the level assets
             screen.blit(SKY_SURF, (0, 0))
-            screen.blit(GROUND_SURF, (0, GROUND_Y))
+            ground_rect_1.x -= 5
+            ground_rect_2.x -= 5
+            if ground_rect_1.right < 0:
+                ground_rect_1.left = ground_rect_2.right
+            if ground_rect_2.right < 0:
+                ground_rect_2.left = ground_rect_1.right
+            screen.blit(GROUND_SURF_1, ground_rect_1)
+            screen.blit(GROUND_SURF_2, ground_rect_2)
+            cloud_1_rect.x -= 1
+            cloud_2_rect.x -= 2
+            if cloud_1_rect.right < 0:
+                cloud_1_rect.left = 800
+            if cloud_2_rect.right < 0:
+                cloud_2_rect.left = 800
+            screen.blit(cloud_1, cloud_1_rect)
+            screen.blit(cloud_2, cloud_2_rect)
 
             current_time = pygame.time.get_ticks() - start_time - total_time_paused
             score = int(current_time / 100)
             score_surf = game_font.render(f"Score: {score}", False, "Black")
             score_rect = score_surf.get_rect(center=(400, 50))
-        
-            pygame.draw.rect(screen, "#c0e8ec", score_rect)
-            pygame.draw.rect(screen, "#c0e8ec", score_rect, 10)
             screen.blit(score_surf, score_rect)
 
             # Adjust egg's horizontal location then blit it
