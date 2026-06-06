@@ -9,12 +9,19 @@ import random
 
 # Initialize Pygame and create a window
 pygame.init()
+pygame.mixer.init()
 screen = pygame.display.set_mode((800, 400))
 clock = pygame.time.Clock()
 running = True  # Pygame main loop, kills pygame when False
 
+is_settings = False
+sound_effects_vol = 50
+jump_sound = pygame.mixer.Sound("audio/jump.MP3")
+jump_sound.set_volume(sound_effects_vol/100)
+
 # Game state variables
 small_font = pygame.font.Font(pygame.font.get_default_font(), 28)
+mini_font = pygame.font.Font(pygame.font.get_default_font(), 18)
 is_playing = True  # Whether in game or in menu
 GROUND_Y = 300  # The Y-coordinate of the ground level
 JUMP_GRAVITY_START_SPEED = -15  # The speed at which the player jumps
@@ -88,6 +95,7 @@ while running:
                 and event.key == pygame.K_SPACE
                 or event.type == pygame.MOUSEBUTTONDOWN
             ):
+                jump_sound.play()
                 if player_rect.bottom >= GROUND_Y:
                     players_gravity_speed = -25 if spring_active else JUMP_GRAVITY_START_SPEED
                     can_double_jump = True
@@ -95,14 +103,31 @@ while running:
                     players_gravity_speed = -25 if spring_active else JUMP_GRAVITY_START_SPEED
                     can_double_jump = False
             elif is_playing:
-                if event.type == pygame.KEYDOWN and event.key == pygame.K_ESCAPE:
-                    is_paused = not is_paused
-                    if is_paused:
-                        time_paused = pygame.time.get_ticks()
-                    else:
-                        total_time_paused += pygame.time.get_ticks() - time_paused
-                if event.type == pygame.KEYDOWN and event.key == pygame.K_q and is_paused:
-                    running = False
+                if event.type == pygame.KEYDOWN:
+ 
+                    if event.key == pygame.K_ESCAPE:
+                        if is_settings:
+                            is_settings = False
+                        else:
+                            is_paused = not is_paused
+                            if is_paused:
+                                time_paused = pygame.time.get_ticks()
+                            else:
+                                total_time_paused += pygame.time.get_ticks() - time_paused
+ 
+                    elif event.key == pygame.K_s and is_paused:
+                        is_settings = not is_settings
+ 
+                    elif event.key == pygame.K_q and is_paused and not is_settings:
+                        running = False
+ 
+                    elif is_settings:
+                        if event.key == pygame.K_LEFT:
+                            sound_effects_vol = max(0, sound_effects_vol - 5)
+                            jump_sound.set_volume(sound_effects_vol / 100)
+                        elif event.key == pygame.K_RIGHT:
+                            sound_effects_vol = min(100, sound_effects_vol + 5)
+                            jump_sound.set_volume(sound_effects_vol / 100)
         else:
             # When player wants to play again by pressing SPACE
             if event.type == pygame.KEYDOWN and event.key == pygame.K_SPACE:
@@ -245,14 +270,32 @@ while running:
             pause_overlay = pygame.Surface((800, 400), pygame.SRCALPHA)
             pause_overlay.fill((0, 0, 0, 150))  # semi-transparent dark overlay
             screen.blit(pause_overlay, (0, 0))
+            if is_settings:
+                setting_surf = game_font.render("Settings Menu", False, "white")
+                screen.blit(setting_surf, setting_surf.get_rect(center=(400, 110)))
+                sound_effects_vol_label = small_font.render(f"Sound Effests Volume: {sound_effects_vol}", False, "white")
+                screen.blit(sound_effects_vol_label, sound_effects_vol_label.get_rect(center=(400, 195)))
 
-            pause_surf = game_font.render("PAUSED", False, "White")
-            resume_surf = game_font.render("ESC to Resume", False, "Gray")
-            quit_surf = game_font.render("Q to Quit", False, "Gray")
+                bar_x, bar_y, bar_w, bar_h = 200, 215, 400, 22
+                pygame.draw.rect(screen, "gray", (bar_x, bar_y, bar_w, bar_h))
+                pygame.draw.rect(screen, "white", (bar_x, bar_y, int(bar_w * sound_effects_vol / 100), bar_h))
+                pygame.draw.rect(screen, "white", (bar_x, bar_y, bar_w, bar_h), 2)
 
-            screen.blit(pause_surf, pause_surf.get_rect(center=(400, 160)))
-            screen.blit(resume_surf, resume_surf.get_rect(center=(400, 230)))
-            screen.blit(quit_surf, quit_surf.get_rect(center=(400, 290)))
+                instruct_surf = mini_font.render("<- -> to adjust sound_effects_vol", False, "white")
+                screen.blit(instruct_surf, instruct_surf.get_rect(center = (400,270)))
+
+                back_surf = mini_font.render("ESC to go back to pause menu", False, "white")
+                screen.blit(back_surf, back_surf.get_rect(center=(200, 320)))
+            else:
+                pause_surf = game_font.render("PAUSED", False, "White")
+                resume_surf = small_font.render("ESC to Resume", False, "Gray")
+                quit_surf = small_font.render("Q to Quit", False, "Gray")
+                to_settings_surf = small_font.render("S to Settings", False, "Gray")
+
+                screen.blit(pause_surf, pause_surf.get_rect(center=(400, 160)))
+                screen.blit(resume_surf, resume_surf.get_rect(center=(400, 215)))
+                screen.blit(quit_surf, quit_surf.get_rect(center=(400, 245)))
+                screen.blit(to_settings_surf, to_settings_surf.get_rect(center = (400, 275)))
 
     # When game is over, display game over message
     else:
